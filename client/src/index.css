@@ -1,0 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
+@import "tailwindcss";
+
+/* Global styles - ensure scrolling works properly */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  /* Removed overflow: hidden to allow scrolling */
+  scroll-behavior: smooth; /* Enable smooth scrolling */
+}
+
+* {
+  font-family: "Outfit", sans-serif;
+  box-sizing: border-box;
+}
+
+/* Ensure the root div can scroll */
+#root {
+  min-height: 100vh;
+}
