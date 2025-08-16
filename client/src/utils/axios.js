@@ -1,12 +1,18 @@
 import axios from "axios";
 
+// src/lib/api.js (or api.ts)
+import axios from "axios";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:4000",
-  withCredentials: import.meta.env.VITE_WITH_CREDENTIALS === "true",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api",
+  withCredentials: true,  // ✅ force true, never from env
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+
+
 
 // Add request interceptor to log URLs
 api.interceptors.request.use((config) => {
