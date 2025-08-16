@@ -18,28 +18,41 @@ const app = express()
 const port = process.env.PORT || 4000
 
 // Connect DB
-connectDB().catch(err => console.error('Database connection error:', err))
+connectDB().catch(err => console.error("Database connection error:", err))
 
 // Security middleware
 app.use(helmet())
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 })
 app.use(limiter)
 
 // Request logging
-app.use(morgan('dev'))
+app.use(morgan("dev"))
 
 // Middlewares
 app.use(express.json())
 app.use(cookieParser())
 
-// Updated CORS and cookie settings
+app.set("trust proxy", 1); // behind Render/Cloudflare
+
+// ✅ FIXED CORS
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://codelabx.in",
+]
+
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error("Not allowed by CORS"))
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -48,25 +61,25 @@ const corsOptions = {
 app.use(cors(corsOptions))
 
 // Session middleware for Passport
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "your-session-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true,
-    },
-  }),
-)
+const isProd = process.env.NODE_ENV === "production";
+app.use(session({
+  secret: process.env.SESSION_SECRET || "your-session-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: isProd,                     // HTTPS only in prod
+    sameSite: isProd ? "none" : "lax",  // needed for cross-site cookies (Vercel ↔ Render)
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+}));
+
 
 // Initialize Passport
 app.use(passport.initialize())
 app.use(passport.session())
 
-// Add this middleware to log auth state
+// Debug middleware
 app.use((req, res, next) => {
   console.log("Session:", req.session)
   console.log("User:", req.user)
@@ -83,13 +96,14 @@ app.use("/api/problems", problemRoutes)
 app.use("/api/submissions", submissionRoutes)
 app.use("/ai-review", aiReviewRoute)
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack)
-  res.status(500).json({ 
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal Server Error' 
-      : err.message 
+  res.status(500).json({
+    error:
+      process.env.NODE_ENV === "production"
+        ? "Internal Server Error"
+        : err.message,
   })
 })
 
