@@ -87,6 +87,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 /* ---------- Debug (keep while deploying) ---------- */
+app.get("/", (_req, res) => res.status(200).send("OK"));
 app.get("/health", (_req, res) => res.status(200).send("API Working"));
 app.get("/debug/headers", (req, res) => {
   res.json({
