@@ -8,14 +8,11 @@ const api = axios.create({
   },
 });
 
-export default api;
-
-
 // Add request interceptor to log URLs
 api.interceptors.request.use((config) => {
-  console.log("Request URL:", config.baseURL + config.url)
-  return config
-})
+  console.log("Request URL:", config.baseURL + config.url);
+  return config;
+});
 
 // Add response interceptor for error handling
 api.interceptors.response.use(
@@ -26,9 +23,9 @@ api.interceptors.response.use(
       method: error.config?.method,
       status: error.response?.status,
       message: error.message,
-    })
-    return Promise.reject(error)
+    });
+    return Promise.reject(error);
   },
-)
+);
 
-export default api
+export default api; // ✅ only once
