@@ -19,7 +19,7 @@ export const AppContextProvider = (props) => {
     try {
       console.log("Fetching user data...");
       // Backend mounts user router at /api/users -> call /users/* from the FE client
-      const { data } = await api.get("/users/me");
+      const { data } = await api.get("users/me");
       console.log("User data response:", data);
 
       if (data?.success === false) throw new Error(data?.message || "Failed");
@@ -44,7 +44,7 @@ export const AppContextProvider = (props) => {
     try {
       console.log("Checking auth state...");
       // Do NOT prefix /api here; axios base handles it
-      const { data } = await api.get("/auth/is-auth");
+      const { data } = await api.get("auth/is-auth");
       console.log("Auth response:", data);
 
       if (data?.success) {

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/axios"; // ← main backend (mounted under /api)
+import axios from "axios"; // ← compiler microservice (run)
 import Editor from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import {
@@ -17,6 +18,11 @@ import {
 import { BiTime, BiTrendingUp } from "react-icons/bi";
 import { HiSparkles } from "react-icons/hi";
 import ReactMarkdown from "react-markdown";
+
+// Compiler microservice base URL
+const COMPILER_API_URL = import.meta.env.DEV
+  ? "http://localhost:5001"
+  : import.meta.env.VITE_COMPILER_BASE_URL; // set this on Vercel if deployed
 
 const ProblemDetail = () => {
   const [showAI, setShowAI] = useState(false);
@@ -33,136 +39,80 @@ const ProblemDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
 
-  // ✅ Correct API URLs for microservices architecture
-  const MAIN_API_URL = "http://localhost:4000"; // Main backend (auth, problems, submissions)
-  const COMPILER_API_URL = "http://localhost:5001"; // Compiler microservice (run, ai-review)
-
-  // 🎨 Professional VS Code-like Monaco themes (Light & Dark)
+  // 🎨 Monaco themes
   useEffect(() => {
     // Dark Theme (VS Code Dark+)
     monaco.editor.defineTheme("vscode-dark-professional", {
       base: "vs-dark",
       inherit: true,
       rules: [
-        // Keywords (if, for, while, def, class, etc.)
         { token: "keyword", foreground: "569cd6", fontStyle: "bold" },
         { token: "keyword.control", foreground: "c586c0", fontStyle: "bold" },
         { token: "keyword.operator", foreground: "569cd6" },
-
-        // Strings
         { token: "string", foreground: "ce9178", fontStyle: "italic" },
         { token: "string.escape", foreground: "d7ba7d" },
-
-        // Numbers
         { token: "number", foreground: "b5cea8" },
         { token: "number.hex", foreground: "b5cea8" },
         { token: "number.float", foreground: "b5cea8" },
-
-        // Comments
         { token: "comment", foreground: "6a9955", fontStyle: "italic" },
         { token: "comment.block", foreground: "6a9955", fontStyle: "italic" },
         { token: "comment.line", foreground: "6a9955", fontStyle: "italic" },
-
-        // Variables and identifiers
         { token: "variable", foreground: "9cdcfe" },
         { token: "variable.parameter", foreground: "9cdcfe" },
         { token: "identifier", foreground: "d4d4d4" },
-
-        // Functions
         { token: "function", foreground: "dcdcaa", fontStyle: "bold" },
         { token: "function.call", foreground: "dcdcaa" },
-
-        // Types and classes
         { token: "type", foreground: "4ec9b0", fontStyle: "bold" },
         { token: "type.identifier", foreground: "4ec9b0" },
         { token: "class", foreground: "4ec9b0", fontStyle: "bold" },
-
-        // Operators
         { token: "operator", foreground: "d4d4d4" },
         { token: "delimiter", foreground: "d4d4d4" },
-
-        // Special tokens
         { token: "tag", foreground: "569cd6" },
         { token: "attribute.name", foreground: "92c5f8" },
         { token: "attribute.value", foreground: "ce9178" },
-
-        // Python specific
         { token: "decorator", foreground: "dcdcaa" },
         { token: "support.function", foreground: "dcdcaa" },
-
-        // C++ specific
         { token: "keyword.directive", foreground: "c586c0" },
         { token: "support.type", foreground: "4ec9b0" },
-
-        // Java specific
         { token: "storage.modifier", foreground: "569cd6" },
         { token: "storage.type", foreground: "569cd6" },
       ],
       colors: {
-        // Editor background and foreground
         "editor.background": "#1e1e1e",
         "editor.foreground": "#d4d4d4",
-
-        // Line highlighting
         "editor.lineHighlightBackground": "#2d2d30",
         "editor.lineHighlightBorder": "#00000000",
-
-        // Selection
         "editor.selectionBackground": "#264f78",
         "editor.selectionHighlightBackground": "#add6ff26",
         "editor.inactiveSelectionBackground": "#3a3d41",
-
-        // Find/search
         "editor.findMatchBackground": "#515c6a",
         "editor.findMatchHighlightBackground": "#ea5c0055",
         "editor.findRangeHighlightBackground": "#3a3d4166",
-
-        // Word highlighting
         "editor.wordHighlightBackground": "#575757b8",
         "editor.wordHighlightStrongBackground": "#004972b8",
-
-        // Line numbers
         "editorLineNumber.foreground": "#858585",
         "editorLineNumber.activeForeground": "#c6c6c6",
-
-        // Cursor
         "editorCursor.foreground": "#aeafad",
-
-        // Indentation guides
         "editorIndentGuide.background": "#404040",
         "editorIndentGuide.activeBackground": "#707070",
-
-        // Gutter (line number area)
         "editorGutter.background": "#1e1e1e",
         "editorGutter.modifiedBackground": "#1b81a8",
         "editorGutter.addedBackground": "#487e02",
         "editorGutter.deletedBackground": "#f85149",
-
-        // Scrollbars
         "scrollbar.shadow": "#000000",
         "scrollbarSlider.background": "#79797966",
         "scrollbarSlider.hoverBackground": "#646464b3",
         "scrollbarSlider.activeBackground": "#bfbfbf66",
-
-        // Brackets
         "editorBracketMatch.background": "#0064001a",
         "editorBracketMatch.border": "#888888",
-
-        // Hover
         "editorHoverWidget.background": "#252526",
         "editorHoverWidget.border": "#454545",
-
-        // Suggest widget (autocomplete)
         "editorSuggestWidget.background": "#252526",
         "editorSuggestWidget.border": "#454545",
         "editorSuggestWidget.selectedBackground": "#094771",
-
-        // Error/warning squiggles
         "editorError.foreground": "#f85149",
         "editorWarning.foreground": "#ff8c00",
         "editorInfo.foreground": "#75beff",
-
-        // Minimap
         "minimap.background": "#1e1e1e",
         "minimap.selectionHighlight": "#264f78",
         "minimap.errorHighlight": "#f85149",
@@ -175,125 +125,73 @@ const ProblemDetail = () => {
       base: "vs",
       inherit: true,
       rules: [
-        // Keywords (if, for, while, def, class, etc.)
         { token: "keyword", foreground: "0000ff", fontStyle: "bold" },
         { token: "keyword.control", foreground: "af00db", fontStyle: "bold" },
         { token: "keyword.operator", foreground: "0000ff" },
-
-        // Strings
         { token: "string", foreground: "a31515", fontStyle: "italic" },
         { token: "string.escape", foreground: "ff0000" },
-
-        // Numbers
         { token: "number", foreground: "098658" },
         { token: "number.hex", foreground: "098658" },
         { token: "number.float", foreground: "098658" },
-
-        // Comments
         { token: "comment", foreground: "008000", fontStyle: "italic" },
         { token: "comment.block", foreground: "008000", fontStyle: "italic" },
         { token: "comment.line", foreground: "008000", fontStyle: "italic" },
-
-        // Variables and identifiers
         { token: "variable", foreground: "001080" },
         { token: "variable.parameter", foreground: "001080" },
         { token: "identifier", foreground: "000000" },
-
-        // Functions
         { token: "function", foreground: "795e26", fontStyle: "bold" },
         { token: "function.call", foreground: "795e26" },
-
-        // Types and classes
         { token: "type", foreground: "267f99", fontStyle: "bold" },
         { token: "type.identifier", foreground: "267f99" },
         { token: "class", foreground: "267f99", fontStyle: "bold" },
-
-        // Operators
         { token: "operator", foreground: "000000" },
         { token: "delimiter", foreground: "000000" },
-
-        // Special tokens
         { token: "tag", foreground: "800000" },
         { token: "attribute.name", foreground: "ff0000" },
         { token: "attribute.value", foreground: "0451a5" },
-
-        // Python specific
         { token: "decorator", foreground: "795e26" },
         { token: "support.function", foreground: "795e26" },
-
-        // C++ specific
         { token: "keyword.directive", foreground: "af00db" },
         { token: "support.type", foreground: "267f99" },
-
-        // Java specific
         { token: "storage.modifier", foreground: "0000ff" },
         { token: "storage.type", foreground: "0000ff" },
       ],
       colors: {
-        // Editor background and foreground
         "editor.background": "#ffffff",
         "editor.foreground": "#000000",
-
-        // Line highlighting
         "editor.lineHighlightBackground": "#f0f0f0",
         "editor.lineHighlightBorder": "#00000000",
-
-        // Selection
         "editor.selectionBackground": "#add6ff",
         "editor.selectionHighlightBackground": "#add6ff4d",
         "editor.inactiveSelectionBackground": "#e5ebf1",
-
-        // Find/search
         "editor.findMatchBackground": "#a8ac94",
         "editor.findMatchHighlightBackground": "#ea5c0055",
         "editor.findRangeHighlightBackground": "#b4b4b44d",
-
-        // Word highlighting
         "editor.wordHighlightBackground": "#57575740",
         "editor.wordHighlightStrongBackground": "#004972b8",
-
-        // Line numbers
         "editorLineNumber.foreground": "#237893",
         "editorLineNumber.activeForeground": "#0b216f",
-
-        // Cursor
         "editorCursor.foreground": "#000000",
-
-        // Indentation guides
         "editorIndentGuide.background": "#d3d3d3",
         "editorIndentGuide.activeBackground": "#939393",
-
-        // Gutter (line number area)
         "editorGutter.background": "#ffffff",
         "editorGutter.modifiedBackground": "#1b81a8",
         "editorGutter.addedBackground": "#487e02",
         "editorGutter.deletedBackground": "#f85149",
-
-        // Scrollbars
         "scrollbar.shadow": "#dddddd",
         "scrollbarSlider.background": "#79797966",
         "scrollbarSlider.hoverBackground": "#646464b3",
         "scrollbarSlider.activeBackground": "#00000066",
-
-        // Brackets
         "editorBracketMatch.background": "#0064001a",
         "editorBracketMatch.border": "#b9b9b9",
-
-        // Hover
         "editorHoverWidget.background": "#f3f3f3",
         "editorHoverWidget.border": "#c8c8c8",
-
-        // Suggest widget (autocomplete)
         "editorSuggestWidget.background": "#f3f3f3",
         "editorSuggestWidget.border": "#c8c8c8",
         "editorSuggestWidget.selectedBackground": "#0060c0",
-
-        // Error/warning squiggles
         "editorError.foreground": "#e51400",
         "editorWarning.foreground": "#bf8803",
         "editorInfo.foreground": "#1a85ff",
-
-        // Minimap
         "minimap.background": "#ffffff",
         "minimap.selectionHighlight": "#add6ff",
         "minimap.errorHighlight": "#e51400",
@@ -302,23 +200,22 @@ const ProblemDetail = () => {
     });
   }, []);
 
-  // Update Monaco theme when isDarkTheme changes
+  // Theme toggle reacts
   useEffect(() => {
     if (window.monacoEditorInstance && window.monacoInstance) {
-      const newTheme = isDarkTheme
-        ? "vscode-dark-professional"
-        : "vscode-light-professional";
-      window.monacoInstance.editor.setTheme(newTheme);
+      window.monacoInstance.editor.setTheme(
+        isDarkTheme ? "vscode-dark-professional" : "vscode-light-professional"
+      );
     }
   }, [isDarkTheme]);
 
+  // Fetch problem from MAIN backend
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const { data } = await axios.get(`${MAIN_API_URL}/problems/${id}`);
+        const { data } = await api.get(`problems/${id}`); // ← path only
         setProblem(data);
 
-        // Set professional starter code based on language
         const starterCodes = {
           python: `# Read input
 n = int(input())
@@ -329,7 +226,6 @@ def solve():
 
 # Call your solution
 solve()`,
-
           cpp: `#include <iostream>
 #include <vector>
 #include <algorithm>
@@ -347,7 +243,6 @@ int main() {
     
     return 0;
 }`,
-
           java: `import java.util.*;
 import java.io.*;
 
@@ -367,7 +262,7 @@ public class Main {
 
         setUserCode(starterCodes[language] || starterCodes.python);
 
-        // Set default custom input based on first example
+        // Default custom input from first example (if present)
         if (data.examples && data.examples.length > 0) {
           const firstExample = data.examples[0];
           if (firstExample.input) {
@@ -395,6 +290,7 @@ public class Main {
     fetchProblem();
   }, [id, language]);
 
+  // AI Review via MAIN backend (/api/ai-review)
   const handleAIReview = async () => {
     if (!userCode.trim()) {
       alert("Please write some code first.");
@@ -404,10 +300,7 @@ public class Main {
     setAIResponse("🤖 Analyzing your code...");
 
     try {
-      const res = await axios.post(`${COMPILER_API_URL}/ai-review`, {
-        code: userCode,
-        language,
-      });
+      const res = await api.post(`ai-review`, { code: userCode, language }); // ← path only
       setAIResponse(res.data?.aiReview || "// No feedback found.");
     } catch (err) {
       console.error(err);
@@ -417,6 +310,7 @@ public class Main {
     }
   };
 
+  // Run code via COMPILER service (/run)
   const handleRun = async () => {
     if (!userCode.trim()) {
       setOutput("⚠️ Please enter some code before running.");
@@ -447,6 +341,7 @@ public class Main {
     }
   };
 
+  // Submit + Judge via MAIN backend
   const handleSubmit = async () => {
     if (!userCode.trim()) {
       setOutput("⚠️ Please enter some code before submitting.");
@@ -457,30 +352,20 @@ public class Main {
     try {
       setOutput("📤 Submitting your solution...");
 
-      const submissionResponse = await axios.post(
-        `${MAIN_API_URL}/submissions`,
-        {
-          problemId: problem._id,
-          problemTitle: problem.title,
-          language,
-          code: userCode,
-        },
-        {
-          withCredentials: true,
-        }
-      );
+      const submissionResponse = await api.post(`submissions`, {
+        problemId: problem._id,
+        problemTitle: problem.title,
+        language,
+        code: userCode,
+      });
 
       const submissionId = submissionResponse.data.submission._id;
       setOutput("⚖️ Judging your solution...");
 
-      const judgeResponse = await axios.post(
-        `${MAIN_API_URL}/submissions/${submissionId}/judge`,
-        {},
-        {
-          withCredentials: true,
-        }
+      const judgeResponse = await api.post(
+        `submissions/${submissionId}/judge`,
+        {}
       );
-
       const result = judgeResponse.data.result;
 
       if (result.status === "SUCCESS") {
@@ -514,9 +399,7 @@ Your solution took too long to execute.`);
     }
   };
 
-  const toggleTheme = () => {
-    setIsDarkTheme(!isDarkTheme);
-  };
+  const toggleTheme = () => setIsDarkTheme(!isDarkTheme);
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -840,14 +723,12 @@ Your solution took too long to execute.`);
                     : "vscode-light-professional"
                 }
                 onMount={(editor, monaco) => {
-                  // Set the initial theme
                   monaco.editor.setTheme(
                     isDarkTheme
                       ? "vscode-dark-professional"
                       : "vscode-light-professional"
                   );
 
-                  // Add custom keybindings like VS Code
                   editor.addCommand(
                     monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
                     () => {
@@ -855,17 +736,14 @@ Your solution took too long to execute.`);
                     }
                   );
 
-                  // Enable bracket pair colorization
                   editor.updateOptions({
                     bracketPairColorization: { enabled: true },
                   });
 
-                  // Store editor instance for theme updates
                   window.monacoEditorInstance = editor;
                   window.monacoInstance = monaco;
                 }}
                 options={{
-                  // Font and appearance
                   fontSize: 15,
                   fontFamily:
                     "'Fira Code', 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace",
@@ -873,8 +751,6 @@ Your solution took too long to execute.`);
                   fontWeight: "400",
                   letterSpacing: 0.5,
                   lineHeight: 1.6,
-
-                  // Editor behavior
                   automaticLayout: true,
                   scrollBeyondLastLine: false,
                   smoothScrolling: true,
@@ -882,39 +758,27 @@ Your solution took too long to execute.`);
                   cursorBlinking: "smooth",
                   cursorStyle: "line",
                   cursorWidth: 2,
-
-                  // Line numbers and folding
                   lineNumbers: "on",
                   lineNumbersMinChars: 3,
                   glyphMargin: true,
                   folding: true,
                   foldingStrategy: "indentation",
                   showFoldingControls: "mouseover",
-
-                  // Indentation and formatting
                   tabSize: 4,
                   insertSpaces: true,
                   detectIndentation: true,
                   trimAutoWhitespace: true,
                   autoIndent: "full",
-
-                  // Selection and highlighting
                   selectionHighlight: true,
                   occurrencesHighlight: true,
                   renderLineHighlight: "all",
                   renderLineHighlightOnlyWhenFocus: false,
                   highlightActiveIndentGuide: true,
-
-                  // Bracket matching
                   matchBrackets: "always",
                   bracketPairColorization: { enabled: true },
-
-                  // Word wrapping
                   wordWrap: "on",
                   wordWrapColumn: 120,
                   wrappingIndent: "indent",
-
-                  // Scrollbars
                   scrollbar: {
                     vertical: "visible",
                     horizontal: "visible",
@@ -922,8 +786,6 @@ Your solution took too long to execute.`);
                     horizontalScrollbarSize: 14,
                     useShadows: true,
                   },
-
-                  // Minimap
                   minimap: {
                     enabled: true,
                     side: "right",
@@ -932,8 +794,6 @@ Your solution took too long to execute.`);
                     maxColumn: 120,
                     scale: 1,
                   },
-
-                  // Suggestions and IntelliSense
                   suggestOnTriggerCharacters: true,
                   acceptSuggestionOnCommitCharacter: true,
                   acceptSuggestionOnEnter: "on",
@@ -954,8 +814,6 @@ Your solution took too long to execute.`);
                     showFiles: true,
                     showReferences: true,
                   },
-
-                  // Advanced features
                   formatOnPaste: true,
                   formatOnType: true,
                   autoClosingBrackets: "always",
@@ -965,21 +823,10 @@ Your solution took too long to execute.`);
                   colorDecorators: true,
                   contextmenu: true,
                   copyWithSyntaxHighlighting: true,
-
-                  // Performance
                   disableLayerHinting: false,
                   disableMonospaceOptimizations: false,
-
-                  // Accessibility
                   accessibilitySupport: "auto",
-
-                  // Padding
-                  padding: {
-                    top: 20,
-                    bottom: 20,
-                    left: 0,
-                    right: 0,
-                  },
+                  padding: { top: 20, bottom: 20, left: 0, right: 0 },
                 }}
               />
             </div>

@@ -61,7 +61,7 @@ const Login = () => {
 
     try {
       if (state === "Sign Up") {
-        const { data } = await api.post("/auth/register", {
+        const { data } = await api.post("auth/register", {
           name,
           email,
           password,
@@ -80,7 +80,7 @@ const Login = () => {
           }
         }
       } else {
-        const { data } = await api.post("/auth/login", { email, password });
+        const { data } = await api.post("auth/login", { email, password });
 
         if (data?.success) {
           await getUserData();

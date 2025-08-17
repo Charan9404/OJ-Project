@@ -2,21 +2,18 @@
 
 import { useContext, useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-toastify";
 import assets from "../assets/assets";
 import { AppContext } from "../context/AppContext";
 import { FaArrowLeft, FaEnvelope, FaCheckCircle } from "react-icons/fa";
+import api from "../utils/axios"; // ✅ use shared axios client (base has /api)
 
 const Emailverify = () => {
-  const { backendUrl, getUserData, userData, isLoggedin } =
-    useContext(AppContext);
+  const { getUserData, userData, isLoggedin } = useContext(AppContext); // ❌ no backendUrl needed here
   const navigate = useNavigate();
   const inputRefs = useRef([]);
   const [isLoading, setIsLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-
-  axios.defaults.withCredentials = true;
 
   // Redirect if already verified
   useEffect(() => {
@@ -60,20 +57,18 @@ const Emailverify = () => {
         .map((ref) => ref.value)
         .join("")
         .trim();
-
       if (otp.length !== 6) {
         toast.error("Please enter all 6 digits");
         setIsLoading(false);
         return;
       }
 
-      const { data } = await axios.post(`${backendUrl}/auth/verify-account`, {
-        otp,
-      });
+      // ✅ path only (no leading slash) — hits /api/auth/verify-account
+      const { data } = await api.post("auth/verify-account", { otp });
 
       if (data.success) {
         toast.success("Email verified successfully! 🎉");
-        getUserData();
+        await getUserData?.();
         navigate("/");
       } else {
         toast.error(data.message || "OTP verification failed");
@@ -88,7 +83,8 @@ const Emailverify = () => {
   const resendOTP = async () => {
     setResendLoading(true);
     try {
-      const { data } = await axios.post(`${backendUrl}/auth/send-verify-otp`);
+      // ✅ path only — hits /api/auth/send-verify-otp
+      const { data } = await api.post("auth/send-verify-otp");
       if (data.success) {
         toast.success("New OTP sent to your email!");
         // Clear existing inputs

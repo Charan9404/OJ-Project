@@ -1,63 +1,60 @@
-// src/utils/api-shim.js
-// Normalizes all fetch/axios calls to the right base, and strips duplicate /api
-
+// Normalizes ALL fetch/axios calls so they hit the right base and don't drop /api.
 import axios from "axios";
 
 const DEV = import.meta.env.DEV;
-const BACKEND_BASE =
-  DEV ? "/api" : `${import.meta.env.VITE_API_BASE_URL}/api`; // e.g. https://codelabx.onrender.com/api
+const BACKEND_BASE = DEV
+  ? "/api"
+  : `${import.meta.env.VITE_API_BASE_URL}/api`;
 
-// Full URLs we want to rewrite to BACKEND_BASE (add more if you used others)
 const KNOWN_FULLS = [
   "http://localhost:4000/api",
-  import.meta.env.VITE_API_BASE_URL
-    ? `${import.meta.env.VITE_API_BASE_URL}/api`
-    : null,
+  import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : null,
   "https://codelabx.onrender.com/api",
 ].filter(Boolean);
 
-/** Replace hard-coded full URLs with BACKEND_BASE, and remove leading /api if duplicated */
-function normalizePath(url) {
+function rewriteToBase(url) {
   if (typeof url !== "string") return url;
 
-  // 1) Rewrite known full URLs -> BACKEND_BASE + path
+  // rewrite known full origins to current base
   for (const full of KNOWN_FULLS) {
-    if (url.startsWith(full)) {
-      return BACKEND_BASE + url.slice(full.length);
-    }
+    if (url.startsWith(full)) return BACKEND_BASE + url.slice(full.length);
   }
-
-  // 2) If someone wrote "/api/xyz", collapse to "/xyz" (because BACKEND_BASE already has /api in prod)
-  if (url.startsWith("/api/")) {
-    return url.replace(/^\/api\//, "/");
-  }
-
-  return url; // leave as-is (relative URLs are fine)
+  // IMPORTANT: if caller passed "/path", strip the leading slash so axios keeps "/api"
+  if (url.startsWith("/")) return url.replace(/^\/+/, "");
+  return url;
 }
 
-/* ------------ Patch axios globally ------------- */
-axios.defaults.baseURL = BACKEND_BASE;
-axios.defaults.withCredentials = true;
-
-axios.interceptors.request.use((cfg) => {
-  if (cfg?.url) {
-    const u = cfg.url.toString();
-    const fixed = normalizePath(u);
-    if (fixed !== u) cfg.url = fixed;
-  }
-  return cfg;
-});
-
-/* ------------ Patch window.fetch (string URLs only) ------------- */
+// Patch fetch
 if (typeof window !== "undefined" && typeof window.fetch === "function") {
   const _fetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
-    if (typeof input === "string") {
-      return _fetch(normalizePath(input), init);
-    }
-    // If it's a Request object, leave it as-is (rare in your codebase)
+    if (typeof input === "string") return _fetch(rewriteToBase(input), init);
     return _fetch(input, init);
   };
 }
+
+// Patch axios (defaults + all created instances)
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = BACKEND_BASE;
+
+function addNormalizer(client) {
+  client.interceptors.request.use((cfg) => {
+    if (cfg?.url) {
+      const fixed = rewriteToBase(String(cfg.url));
+      if (fixed !== cfg.url) cfg.url = fixed;
+    }
+    return cfg;
+  });
+  return client;
+}
+addNormalizer(axios);
+
+const _create = axios.create.bind(axios);
+axios.create = function patchedCreate(config) {
+  const inst = _create(config);
+  if (!inst.defaults.baseURL) inst.defaults.baseURL = BACKEND_BASE;
+  inst.defaults.withCredentials = true;
+  return addNormalizer(inst);
+};
 
 export { BACKEND_BASE };

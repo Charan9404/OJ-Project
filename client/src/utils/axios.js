@@ -1,36 +1,41 @@
 import axios from "axios";
 
-// src/lib/api.js (or api.ts
+// Build a safe baseURL that always ends with a single trailing slash.
+const rawBase =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+const baseURL = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api",
-  withCredentials: true,  // ✅ force true, never from env
+  baseURL,
+  withCredentials: true, // keep cookies/session
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 15000, // optional: avoid hanging forever
 });
 
-
-
-
-// Add request interceptor to log URLs
+// Normalize paths + log
 api.interceptors.request.use((config) => {
-  console.log("Request URL:", config.baseURL + config.url);
+  // Accept both "path" and "/path" from callers — normalize to "path"
+  if (typeof config.url === "string" && config.url.startsWith("/")) {
+    config.url = config.url.slice(1);
+  }
+  console.log("Request URL:", config.baseURL + (config.url || ""));
   return config;
 });
 
-// Add response interceptor for error handling
+// Basic error logging
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   (error) => {
     console.error("API Error:", {
-      url: error.config?.url,
+      url: error.config?.baseURL + (error.config?.url || ""),
       method: error.config?.method,
       status: error.response?.status,
       message: error.message,
     });
     return Promise.reject(error);
-  },
+  }
 );
 
-export default api; // ✅ only once
+export default api;

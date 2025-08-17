@@ -1,11 +1,10 @@
 "use client";
 
-import { useContext, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-toastify";
 import { assets } from "../assets/assets";
-import { AppContext } from "../context/AppContext";
+import api from "../utils/axios";
 import {
   FaArrowLeft,
   FaEnvelope,
@@ -19,12 +18,10 @@ import {
 
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const { backendUrl } = useContext(AppContext);
 
   // Multi-step state management
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,24 +31,20 @@ const ResetPassword = () => {
   // OTP input refs
   const inputRefs = useRef([]);
 
-  axios.defaults.withCredentials = true;
-
   // Step 1: Send OTP to email
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/send-reset-otp`,
-        { email }
-      );
+      // hits: /api/auth/send-reset-otp
+      const { data } = await api.post("auth/send-reset-otp", { email });
 
       if (data.success) {
         toast.success("OTP sent to your email! 📧");
         setStep(2);
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to send OTP");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send OTP");
@@ -87,20 +80,18 @@ const ResetPassword = () => {
     }
 
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/reset-password`,
-        {
-          email,
-          otp: otpValue,
-          newPassword,
-        }
-      );
+      // hits: /api/auth/reset-password
+      const { data } = await api.post("auth/reset-password", {
+        email,
+        otp: otpValue,
+        newPassword,
+      });
 
       if (data.success) {
         toast.success("Password reset successfully! 🎉");
         navigate("/login");
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to reset password");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to reset password");
@@ -140,10 +131,8 @@ const ResetPassword = () => {
   const handleResendOTP = async () => {
     setIsLoading(true);
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/send-reset-otp`,
-        { email }
-      );
+      // hits: /api/auth/send-reset-otp
+      const { data } = await api.post("auth/send-reset-otp", { email });
       if (data.success) {
         toast.success("New OTP sent! 📧");
         // Clear OTP inputs
@@ -152,7 +141,7 @@ const ResetPassword = () => {
         });
         inputRefs.current[0]?.focus();
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to resend OTP");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to resend OTP");

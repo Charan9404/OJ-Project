@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { Link, useNavigate } from "react-router-dom";
 import { BiTime } from "react-icons/bi";
 import { checkAuth } from "../utils/authUtils";
 import { toast } from "react-toastify";
+import api from "../utils/axios"; // ✅ use shared client (base has /api)
 
 const Problems = () => {
   const [selectedTopic, setSelectedTopic] = useState("Algorithms");
@@ -28,10 +28,8 @@ const Problems = () => {
 
         setIsAuthenticated(true);
 
-        // Fetch problems if authenticated
-        const { data } = await axios.get("/problems", {
-          withCredentials: true,
-        });
+        // Fetch problems if authenticated (path only; no leading slash)
+        const { data } = await api.get("problems");
         console.log("🧪 All Problems from API:", data);
         setAllProblems(data);
       } catch (err) {
@@ -126,14 +124,19 @@ const Problems = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {problem.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-full text-xs font-medium"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                    {problem.tags?.map(
+                      (
+                        tag,
+                        i // ✅ safe optional chaining
+                      ) => (
+                        <span
+                          key={i}
+                          className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 px-3 py-1 rounded-full text-xs font-medium"
+                        >
+                          {tag}
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
               </Link>

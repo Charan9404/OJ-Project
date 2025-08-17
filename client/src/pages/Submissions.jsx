@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react";
 import { FaRegClock, FaSearch } from "react-icons/fa";
 import {
@@ -9,9 +8,10 @@ import {
   MdHistory,
 } from "react-icons/md";
 import { IoCodeSlash } from "react-icons/io5";
+import api from "../utils/axios"; // ✅ shared axios client (base has /api)
 
 /**
- * Submissions Page (glassmorphic, dark, indigo‑purple tone)
+ * Submissions Page (glassmorphic, dark, indigo-purple tone)
  * - Fetches user submissions from /api/submissions/mine
  * - Filters: text search (problem/title), language, status
  * - Sort: newest → oldest
@@ -62,6 +62,8 @@ function SkeletonRow() {
 }
 
 export default function Submissions() {
+  const navigate = useNavigate();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,14 +83,18 @@ export default function Submissions() {
       setLoading(true);
       setError("");
       try {
-        const { data } = await axios.get("/submissions/mine", {
-          // if you use cookies/session, ensure withCredentials at axios base level
-        });
+        // ✅ path only (no leading slash): /api/submissions/mine
+        const { data } = await api.get("submissions/mine");
         if (!mounted) return;
         setData(Array.isArray(data) ? data : data?.submissions || []);
       } catch (e) {
         console.error(e);
         if (!mounted) return;
+        if (e?.response?.status === 401) {
+          // Optional: redirect to login when unauthorized
+          navigate("/login");
+          return;
+        }
         setError(
           e?.response?.data?.error ||
             "Couldn't load submissions. Please try again."
@@ -100,7 +106,7 @@ export default function Submissions() {
       }
     })();
     return () => (mounted = false);
-  }, []);
+  }, [navigate]);
 
   // Derived rows via filters + sort
   const filtered = useMemo(() => {
