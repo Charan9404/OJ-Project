@@ -103,7 +103,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);         
 app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
-app.use("/ai-review", aiReviewRoute); 
+app.use("/api/ai-review", aiReviewRoute);
 
 /* ---------- Start ---------- */
 const start = async () => {

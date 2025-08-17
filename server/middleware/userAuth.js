@@ -1,25 +1,36 @@
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
-const userAuth = async (req, res, next) => {
+const userAuth = (req, res, next) => {
   try {
-    const { token } = req.cookies
+    // ✅ Ensure cookie-parser is installed in server.js
+    const token = req.cookies?.token;
 
     if (!token) {
-      return res.status(401).json({ success: false, message: "Not Authorized. Login Again" })
+      console.warn("🔒 No token cookie received");
+      return res
+        .status(401)
+        .json({ success: false, message: "Not Authorized. Login Again" });
     }
 
-    const tokenDecode = jwt.verify(token, process.env.JWT_SECRET)
+    // ✅ Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (tokenDecode.id) {
-      req.userId = tokenDecode.id
-      next()
-    } else {
-      return res.status(401).json({ success: false, message: "Not Authorized. Login Again" })
+    if (!decoded?.id) {
+      console.warn("🔒 Token decoded but no id field");
+      return res
+        .status(401)
+        .json({ success: false, message: "Not Authorized. Login Again" });
     }
-  } catch (error) {
-    console.error("Auth middleware error:", error)
-    return res.status(401).json({ success: false, message: "Not Authorized. Login Again" })
+
+    // ✅ Attach userId to request
+    req.userId = decoded.id;
+    next();
+  } catch (err) {
+    console.error("Auth middleware error:", err.message);
+    return res
+      .status(401)
+      .json({ success: false, message: "Not Authorized. Login Again" });
   }
-}
+};
 
-export default userAuth
+export default userAuth;
