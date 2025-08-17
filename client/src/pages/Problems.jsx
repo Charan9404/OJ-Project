@@ -29,7 +29,7 @@ const Problems = () => {
         setIsAuthenticated(true);
 
         // Fetch problems if authenticated
-        const { data } = await axios.get("/api/problems", {
+        const { data } = await axios.get("/problems", {
           withCredentials: true,
         });
         console.log("🧪 All Problems from API:", data);

@@ -1,12 +1,22 @@
 "use client";
 
 const GoogleSignInButton = ({ isLoading, setIsLoading }) => {
+  const BACKEND_BASE = import.meta.env.DEV
+    ? "http://localhost:4000" // dev: local server
+    : import.meta.env.VITE_API_BASE_URL || ""; // prod: Render URL (no trailing slash)
+
   const handleGoogleSignIn = () => {
     setIsLoading(true);
-    // Redirect to backend Google OAuth
-    window.location.href = `${
-      import.meta.env.VITE_BACKEND_URL
-    }/api/auth/google`;
+
+    if (!BACKEND_BASE) {
+      console.error("Missing VITE_API_BASE_URL for production.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Build full redirect to backend OAuth endpoint
+    const url = `${BACKEND_BASE}/api/auth/google`;
+    window.location.href = url;
   };
 
   return (
@@ -24,7 +34,7 @@ const GoogleSignInButton = ({ isLoading, setIsLoading }) => {
         </>
       ) : (
         <>
-          {/* Custom Google G with official colors */}
+          {/* Google "G" icon */}
           <div className="relative w-5 h-5 flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 24 24" className="w-5 h-5">
               <path

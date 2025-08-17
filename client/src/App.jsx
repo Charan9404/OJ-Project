@@ -1,3 +1,4 @@
+import "./utils/api-shim"; // Ensure API shim is loaded first
 import { Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";

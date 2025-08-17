@@ -67,10 +67,9 @@ const Emailverify = () => {
         return;
       }
 
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/verify-account`,
-        { otp }
-      );
+      const { data } = await axios.post(`${backendUrl}/auth/verify-account`, {
+        otp,
+      });
 
       if (data.success) {
         toast.success("Email verified successfully! 🎉");
@@ -89,9 +88,7 @@ const Emailverify = () => {
   const resendOTP = async () => {
     setResendLoading(true);
     try {
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/send-verify-otp`
-      );
+      const { data } = await axios.post(`${backendUrl}/auth/send-verify-otp`);
       if (data.success) {
         toast.success("New OTP sent to your email!");
         // Clear existing inputs

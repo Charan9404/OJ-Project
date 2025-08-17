@@ -7,18 +7,47 @@ import api from "../utils/axios";
 export const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  // Keep a consistent backend URL name for anything that needs full redirects (e.g., Google OAuth)
+  const backendUrl =
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || "";
+
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getUserData = async () => {
+    try {
+      console.log("Fetching user data...");
+      // Backend mounts user router at /api/users -> call /users/* from the FE client
+      const { data } = await api.get("/users/me");
+      console.log("User data response:", data);
+
+      if (data?.success === false) throw new Error(data?.message || "Failed");
+
+      // accept common shapes: {user} or {userData}
+      const u = data?.user || data?.userData || null;
+      if (!u) throw new Error("User not found in response");
+
+      setUserData(u);
+      return u;
+    } catch (error) {
+      console.log("User data fetch failed:", error.response?.status);
+      if (error.response?.status !== 401) {
+        toast.error(error.message || "Failed to fetch user data");
+      }
+      setUserData(null);
+      return null;
+    }
+  };
+
   const getAuthState = async () => {
     try {
       console.log("Checking auth state...");
-      const { data } = await api.get("/api/auth/is-auth");
+      // Do NOT prefix /api here; axios base handles it
+      const { data } = await api.get("/auth/is-auth");
       console.log("Auth response:", data);
 
-      if (data.success) {
+      if (data?.success) {
         setIsLoggedin(true);
         await getUserData();
       } else {
@@ -26,10 +55,8 @@ export const AppContextProvider = (props) => {
         setUserData(null);
       }
     } catch (error) {
-      console.log("Auth check failed:", error.response?.status);
-      if (error.response?.status !== 401) {
-        console.error("Auth check error:", error);
-      }
+      // 401 here just means "not logged in" — no toast
+      console.log("Auth check failed:", error?.response?.status);
       setIsLoggedin(false);
       setUserData(null);
     } finally {
@@ -37,52 +64,27 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  const getUserData = async () => {
-    try {
-      console.log("Fetching user data...");
-      const { data } = await api.get("/api/user/data");
-      console.log("User data response:", data);
-
-      if (data.success) {
-        setUserData(data.userData);
-      } else {
-        throw new Error(data.message);
-      }
-    } catch (error) {
-      console.log("User data fetch failed:", error.response?.status);
-      if (error.response?.status !== 401) {
-        toast.error(error.message || "Failed to fetch user data");
-      }
-      setUserData(null);
-    }
-  };
-
   // Handle Google OAuth redirect and check auth state
   useEffect(() => {
     console.log("AppContext useEffect triggered");
 
-    // Check for Google OAuth redirect parameters
     const urlParams = new URLSearchParams(window.location.search);
     const authStatus = urlParams.get("auth");
 
     if (authStatus === "success") {
       console.log("Google OAuth success detected");
-      // Google OAuth was successful
       setIsLoggedin(true);
       getUserData().finally(() => setIsLoading(false));
-      // Clean up URL parameters
+      // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
       toast.success("Successfully signed in with Google! 🎉");
     } else if (authStatus === "error") {
       console.log("Google OAuth error detected");
-      // Google OAuth failed
       toast.error("Google sign-in failed. Please try again.");
-      // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       setIsLoading(false);
     } else {
       console.log("Normal auth state check");
-      // Normal auth state check
       getAuthState();
     }
   }, []);

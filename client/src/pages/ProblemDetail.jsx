@@ -315,7 +315,7 @@ const ProblemDetail = () => {
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const { data } = await axios.get(`${MAIN_API_URL}/api/problems/${id}`);
+        const { data } = await axios.get(`${MAIN_API_URL}/problems/${id}`);
         setProblem(data);
 
         // Set professional starter code based on language
@@ -458,7 +458,7 @@ public class Main {
       setOutput("📤 Submitting your solution...");
 
       const submissionResponse = await axios.post(
-        `${MAIN_API_URL}/api/submissions`,
+        `${MAIN_API_URL}/submissions`,
         {
           problemId: problem._id,
           problemTitle: problem.title,
@@ -474,7 +474,7 @@ public class Main {
       setOutput("⚖️ Judging your solution...");
 
       const judgeResponse = await axios.post(
-        `${MAIN_API_URL}/api/submissions/${submissionId}/judge`,
+        `${MAIN_API_URL}/submissions/${submissionId}/judge`,
         {},
         {
           withCredentials: true,

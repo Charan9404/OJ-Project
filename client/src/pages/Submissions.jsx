@@ -81,7 +81,7 @@ export default function Submissions() {
       setLoading(true);
       setError("");
       try {
-        const { data } = await axios.get("/api/submissions/mine", {
+        const { data } = await axios.get("/submissions/mine", {
           // if you use cookies/session, ensure withCredentials at axios base level
         });
         if (!mounted) return;
