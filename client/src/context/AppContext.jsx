@@ -7,9 +7,11 @@ import api from "../utils/axios";
 export const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
-  // Keep a consistent backend URL name for anything that needs full redirects (e.g., Google OAuth)
-  const backendUrl =
-    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || "";
+  // Use the bare backend origin for redirects (no /api here).
+  const backendUrl = (import.meta.env.VITE_BACKEND_URL || "").replace(
+    /\/+$/,
+    ""
+  );
 
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -18,17 +20,21 @@ export const AppContextProvider = (props) => {
   const getUserData = async () => {
     try {
       console.log("Fetching user data...");
-      // Backend mounts user router at /api/users -> call /users/* from the FE client
-      const { data } = await api.get("users/me");
+      const { data } = await api.get("users/me"); // baseURL adds /api/
       console.log("User data response:", data);
 
-      if (data?.success === false) throw new Error(data?.message || "Failed");
+      // Accept several shapes
+      const u =
+        data?.user ||
+        data?.userData ||
+        (data && typeof data === "object" && (data.email || data._id)
+          ? data
+          : null);
 
-      // accept common shapes: {user} or {userData}
-      const u = data?.user || data?.userData || null;
-      if (!u) throw new Error("User not found in response");
+      if (!u) throw new Error(data?.message || "User not found in response");
 
       setUserData(u);
+      setIsLoggedin(true); // ensure UI flips once user is loaded
       return u;
     } catch (error) {
       console.log("User data fetch failed:", error.response?.status);
@@ -43,7 +49,6 @@ export const AppContextProvider = (props) => {
   const getAuthState = async () => {
     try {
       console.log("Checking auth state...");
-      // Do NOT prefix /api here; axios base handles it
       const { data } = await api.get("auth/is-auth");
       console.log("Auth response:", data);
 
@@ -55,7 +60,7 @@ export const AppContextProvider = (props) => {
         setUserData(null);
       }
     } catch (error) {
-      // 401 here just means "not logged in" — no toast
+      // 401 just means not logged in
       console.log("Auth check failed:", error?.response?.status);
       setIsLoggedin(false);
       setUserData(null);
@@ -75,7 +80,6 @@ export const AppContextProvider = (props) => {
       console.log("Google OAuth success detected");
       setIsLoggedin(true);
       getUserData().finally(() => setIsLoading(false));
-      // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
       toast.success("Successfully signed in with Google! 🎉");
     } else if (authStatus === "error") {
@@ -90,7 +94,7 @@ export const AppContextProvider = (props) => {
   }, []);
 
   const value = {
-    backendUrl,
+    backendUrl, // origin for redirects
     isLoggedin,
     setIsLoggedin,
     userData,
