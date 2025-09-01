@@ -1,20 +1,18 @@
 "use client";
 
-// ✅ Enhanced Responsive & Themed Navbar with Glass Morphism Design
 import { useContext, useEffect, useState } from "react";
 import assets from "../assets/assets";
 import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
-import axios from "axios";
+import api from "../utils/axios";
 import { FaBrain, FaSignOutAlt, FaEnvelope, FaHome } from "react-icons/fa";
 import { MdOutlineHistoryEdu, MdVerified } from "react-icons/md";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userData, backendUrl, setIsLoggedin, setUserData } =
-    useContext(AppContext);
+  const { userData, setIsLoggedin, setUserData } = useContext(AppContext);
   const [showNavbar, setShowNavbar] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -32,10 +30,7 @@ const Navbar = () => {
 
   const sendVerificationOtp = async () => {
     try {
-      axios.defaults.withCredentials = true;
-      const { data } = await axios.post(
-        backendUrl + "/api/auth/send-verify-otp"
-      );
+      const { data } = await api.post("/api/auth/send-verify-otp");
       if (data.success) {
         navigate("/email-verify");
         toast.success(data.message);
@@ -50,8 +45,7 @@ const Navbar = () => {
 
   const logout = async () => {
     try {
-      axios.defaults.withCredentials = true;
-      const { data } = await axios.post(backendUrl + "/api/auth/logout");
+      const { data } = await api.post("/api/auth/logout");
       if (data.success) {
         setIsLoggedin(false);
         setUserData(null);
@@ -73,7 +67,6 @@ const Navbar = () => {
     location.pathname === "/codeeditor-special" ||
     location.pathname.includes("/problems/");
 
-  // Dynamic navbar classes based on page - with more specific dark theme styling
   const getNavbarClasses = () => {
     const baseClasses = `w-full flex justify-between items-center px-6 sm:px-10 py-4 transition-all duration-500 z-50 fixed top-0 left-0 ${
       showNavbar ? "translate-y-0" : "-translate-y-full"
@@ -82,31 +75,23 @@ const Navbar = () => {
     if (isHome) {
       return `${baseClasses} bg-white/95 backdrop-blur-xl text-gray-800 shadow-lg border-b border-gray-200/50`;
     } else if (isDarkTheme) {
-      // ✅ More specific and robust dark theme styling
       return `${baseClasses} !bg-[#0f0f1a] !bg-opacity-90 backdrop-blur-xl text-white border-b border-white/10 shadow-2xl`;
     } else {
       return `${baseClasses} bg-white/90 backdrop-blur-xl text-gray-800 shadow-lg border-b border-gray-200/30`;
     }
   };
 
-  // Logo component with theme-aware styling
   const Logo = () => (
     <div
       className="flex items-center gap-3 cursor-pointer group transition-all duration-300 hover:scale-105"
       onClick={() => navigate("/")}
     >
-      <div
-        className={`relative ${isDarkTheme ? "text-white" : "text-gray-800"}`}
-      >
-        {isDarkTheme && (
-          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        )}
-      </div>
+      <div className="relative" />
       <span
         className={`font-bold text-xl transition-all duration-300 ${
           isDarkTheme
             ? "bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"
-            : "text-gray-800 group-hover:text-indigo-600"
+            : "text-gray-800 hover:text-indigo-600"
         }`}
       >
         CodeLabX
@@ -114,7 +99,6 @@ const Navbar = () => {
     </div>
   );
 
-  // Navigation links with enhanced styling
   const NavLinks = () => {
     if (!userData) return null;
 
@@ -145,9 +129,6 @@ const Navbar = () => {
         >
           <FaBrain className="text-lg" />
           <span className="hidden sm:block">Problems</span>
-          {isDarkTheme && (
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-          )}
         </NavLink>
 
         <NavLink
@@ -156,15 +137,11 @@ const Navbar = () => {
         >
           <MdOutlineHistoryEdu className="text-xl" />
           <span className="hidden sm:block">Submissions</span>
-          {isDarkTheme && (
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
-          )}
         </NavLink>
       </div>
     );
   };
 
-  // User dropdown with enhanced styling
   const UserDropdown = () => {
     if (!userData) {
       return (
@@ -206,16 +183,13 @@ const Navbar = () => {
           )}
         </button>
 
-        {/* Dropdown Menu */}
         {isDropdownOpen && (
           <>
-            {/* Backdrop */}
             <div
               className="fixed inset-0 z-10"
               onClick={() => setIsDropdownOpen(false)}
             ></div>
 
-            {/* Dropdown Content */}
             <div
               className={`absolute right-0 top-12 z-20 min-w-[200px] rounded-xl shadow-2xl border transition-all duration-300 ${
                 isDarkTheme
@@ -224,7 +198,6 @@ const Navbar = () => {
               }`}
             >
               <div className="p-2">
-                {/* User Info */}
                 <div
                   className={`px-4 py-3 border-b ${
                     isDarkTheme ? "border-white/10" : "border-gray-200"
@@ -253,7 +226,6 @@ const Navbar = () => {
                   </div>
                 </div>
 
-                {/* Menu Items */}
                 <div className="py-2">
                   {!userData.isAccountVerified && (
                     <button

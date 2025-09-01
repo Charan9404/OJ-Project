@@ -7,7 +7,9 @@ import api from "../utils/axios";
 export const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  // Provide a defined value so consumers never see undefined
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,28 +63,22 @@ export const AppContextProvider = (props) => {
   useEffect(() => {
     console.log("AppContext useEffect triggered");
 
-    // Check for Google OAuth redirect parameters
     const urlParams = new URLSearchParams(window.location.search);
     const authStatus = urlParams.get("auth");
 
     if (authStatus === "success") {
       console.log("Google OAuth success detected");
-      // Google OAuth was successful
       setIsLoggedin(true);
       getUserData().finally(() => setIsLoading(false));
-      // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       toast.success("Successfully signed in with Google! 🎉");
     } else if (authStatus === "error") {
       console.log("Google OAuth error detected");
-      // Google OAuth failed
       toast.error("Google sign-in failed. Please try again.");
-      // Clean up URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       setIsLoading(false);
     } else {
       console.log("Normal auth state check");
-      // Normal auth state check
       getAuthState();
     }
   }, []);
@@ -96,12 +92,6 @@ export const AppContextProvider = (props) => {
     getUserData,
     isLoading,
   };
-
-  console.log("AppContext state:", {
-    isLoading,
-    isLoggedin,
-    userData: !!userData,
-  });
 
   if (isLoading) {
     return (

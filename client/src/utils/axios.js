@@ -1,5 +1,6 @@
 import axios from "axios"
 
+// Create a single axios instance used everywhere
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL || "http://localhost:4000",
   withCredentials: true,
@@ -8,13 +9,14 @@ const api = axios.create({
   },
 })
 
-// Add request interceptor to log URLs
+// Log full request URL for debugging
 api.interceptors.request.use((config) => {
-  console.log("Request URL:", config.baseURL + config.url)
+  const fullUrl = `${config.baseURL?.replace(/\/$/, "")}${config.url || ""}`
+  console.log("Request URL:", fullUrl)
   return config
 })
 
-// Add response interceptor for error handling
+// Centralized error logging
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -23,6 +25,7 @@ api.interceptors.response.use(
       method: error.config?.method,
       status: error.response?.status,
       message: error.message,
+      data: error.response?.data,
     })
     return Promise.reject(error)
   },
