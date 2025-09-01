@@ -7,6 +7,7 @@ import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import axios from "axios";
+import api from "../utils/axios";
 import { FaBrain, FaSignOutAlt, FaEnvelope, FaHome } from "react-icons/fa";
 import { MdOutlineHistoryEdu, MdVerified } from "react-icons/md";
 
@@ -50,20 +51,23 @@ const Navbar = () => {
 
   const logout = async () => {
     try {
-      axios.defaults.withCredentials = true;
-      const { data } = await axios.post(backendUrl + "/api/auth/logout");
-      if (data.success) {
+      // IMPORTANT: relative path, no backendUrl, no `/api`, no leading slash
+      const { data } = await api.post("auth/logout");
+
+      if (data?.success) {
         setIsLoggedin(false);
         setUserData(null);
-        navigate("/");
         toast.success("Logged out successfully");
+        navigate("/");
       } else {
-        toast.error(data.message);
+        toast.error(data?.message || "Logout failed");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Logout failed");
+      console.error("Logout error:", error);
+    } finally {
+      setIsDropdownOpen(false);
     }
-    setIsDropdownOpen(false);
   };
 
   const isHome = location.pathname === "/";
