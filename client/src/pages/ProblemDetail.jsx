@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/axios"; // ✅ Use the configured api instance instead of direct axios
 import Editor from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import {
@@ -33,8 +33,7 @@ const ProblemDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
 
-  // ✅ Correct API URLs for microservices architecture
-  const MAIN_API_URL = "http://localhost:4000"; // Main backend (auth, problems, submissions)
+  // ✅ Use relative URLs since api instance has baseURL configured
   const COMPILER_API_URL = "http://localhost:5001"; // Compiler microservice (run, ai-review)
 
   // 🎨 Professional VS Code-like Monaco themes (Light & Dark)
@@ -315,7 +314,8 @@ const ProblemDetail = () => {
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const { data } = await axios.get(`${MAIN_API_URL}/api/problems/${id}`);
+        // ✅ Use api instance with credentials instead of direct axios
+        const { data } = await api.get(`/api/problems/${id}`);
         setProblem(data);
 
         // Set professional starter code based on language
@@ -404,7 +404,8 @@ public class Main {
     setAIResponse("🤖 Analyzing your code...");
 
     try {
-      const res = await axios.post(`${COMPILER_API_URL}/ai-review`, {
+      // ✅ Use api instance for compiler calls too (if needed)
+      const res = await api.post(`${COMPILER_API_URL}/ai-review`, {
         code: userCode,
         language,
       });
@@ -426,7 +427,8 @@ public class Main {
     setIsRunning(true);
     try {
       setOutput("🚀 Executing your code...");
-      const { data } = await axios.post(`${COMPILER_API_URL}/run`, {
+      // ✅ Use api instance for compiler calls too (if needed)
+      const { data } = await api.post(`${COMPILER_API_URL}/run`, {
         language,
         code: userCode,
         input: customInput,
@@ -457,28 +459,19 @@ public class Main {
     try {
       setOutput("📤 Submitting your solution...");
 
-      const submissionResponse = await axios.post(
-        `${MAIN_API_URL}/api/submissions`,
-        {
-          problemId: problem._id,
-          problemTitle: problem.title,
-          language,
-          code: userCode,
-        },
-        {
-          withCredentials: true,
-        }
-      );
+      // ✅ Use api instance for submissions (already has withCredentials)
+      const submissionResponse = await api.post("/api/submissions", {
+        problemId: problem._id,
+        problemTitle: problem.title,
+        language,
+        code: userCode,
+      });
 
       const submissionId = submissionResponse.data.submission._id;
       setOutput("⚖️ Judging your solution...");
 
-      const judgeResponse = await axios.post(
-        `${MAIN_API_URL}/api/submissions/${submissionId}/judge`,
-        {},
-        {
-          withCredentials: true,
-        }
+      const judgeResponse = await api.post(
+        `/api/submissions/${submissionId}/judge`
       );
 
       const result = judgeResponse.data.result;
