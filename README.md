@@ -221,6 +221,43 @@ Request body:
 
 ---
 
+## Demo
+
+Add your demo video via one of these options:
+
+- Host on YouTube and embed a link with a thumbnail
+  
+  ```md
+  ### Demo Video
+  [![Watch the demo](https://img.youtube.com/vi/R874o9HHhK4/maxresdefault.jpg)](https://youtu.be/R874o9HHhK4)
+  ```
+
+- Store the video in the repo using Git LFS (recommended for large files)
+  
+  ```bash
+  # one-time per machine
+  brew install git-lfs            # or: apt-get install git-lfs
+  git lfs install
+  
+  # in repo
+  git lfs track "demo/*.mp4"
+  git add .gitattributes demo/your-demo.mp4
+  git commit -m "Add demo video via LFS"
+  git push origin <branch>
+  ```
+
+- Store the video in `client/public/` and link to it (keeps video accessible by the dev server)
+  
+  ```md
+  [Watch demo](client/public/your-demo.mp4)
+  ```
+
+Notes:
+- Prefer YouTube or LFS to avoid bloating the repo with large binaries.
+- If using GitHub, LFS bandwidth/storage limits apply.
+
+---
+
 ## Authentication
 
 - Cookie-based JWT using `token` cookie
